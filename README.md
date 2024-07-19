@@ -1,0 +1,1 @@
+# Algoritmo-Genetico-para-Planejamento-de-Carga-em-Avioes
