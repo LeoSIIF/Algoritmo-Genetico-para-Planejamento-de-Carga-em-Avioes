@@ -1,9 +1,10 @@
+
 package agjava2024;
 
 public class Produto {
-
     private String descricao;
     private double peso;
+    private double valor; 
     private double largura;
     private double altura;
     private double profundidade;
@@ -50,6 +51,12 @@ public class Produto {
 
     @Override
     public String toString() {
-        return "Produto{Descricao:" + this.descricao + " Peso:" + this.peso + " Largura:" + this.largura + " Altura:" + this.altura + " Profundidade:" + this.profundidade + " }";
+        return "Produto{" +
+                "Descricao:'" + descricao + '\'' +
+                ", Peso:" + peso +
+                ", Largura:" + largura +
+                ", Altura:" + altura +
+                ", Profundidade:" + profundidade +
+                '}';
     }
 }
