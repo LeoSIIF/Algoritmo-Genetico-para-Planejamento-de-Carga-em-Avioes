@@ -4,47 +4,55 @@ import java.io.*;
 import java.util.*;
 
 public class AlgoritmoGenetico {
-
     private int tamPopulacao;
     private int tamCromossomo = 0;
-    private double capacidade;
+    private double capacidadePeso;
     private double larguraMaxima;
     private double alturaMaxima;
     private double profundidadeMaxima;
     private int probMutacao;
     private int qtdeCruzamentos;
+    private int numeroGeracoes;
     private ArrayList<Produto> produtos = new ArrayList<>();
     private ArrayList<ArrayList<Integer>> populacao = new ArrayList<>();
     private ArrayList<Integer> roletaVirtual = new ArrayList<>();
 
-    public AlgoritmoGenetico(int tamanhoPopulacao, double capacidadePeso, double larguraMaxima, double alturaMaxima, double profundidadeMaxima, int probabilidadeMutacao, int qtdeCruzamentos) {
+    public AlgoritmoGenetico(int tamanhoPopulacao, double capacidadePeso, double larguraMaxima,
+                             double alturaMaxima, double profundidadeMaxima, int probabilidadeMutacao, 
+                             int qtdeCruzamentos, int numGeracoes) {
         this.tamPopulacao = tamanhoPopulacao;
-        this.capacidade = capacidadePeso;
+        this.capacidadePeso = capacidadePeso;
         this.larguraMaxima = larguraMaxima;
         this.alturaMaxima = alturaMaxima;
         this.profundidadeMaxima = profundidadeMaxima;
         this.probMutacao = probabilidadeMutacao;
         this.qtdeCruzamentos = qtdeCruzamentos;
+        this.numeroGeracoes = numGeracoes;
     }
 
     public void executar() {
         this.criarPopulacao();
-        this.gerarRoleta();
-        System.out.println("Selecionado: " + roleta());
-        for (int i = 0; i < this.tamPopulacao; i++) {
-            System.out.println("Cromossomo " + i + ": " + populacao.get(i));
-            System.out.println("Avaliacao: " + fitness(populacao.get(i)));
+        for (int i = 0; i < this.numeroGeracoes; i++) {
+            System.out.println("Geracao: " + i);
+            mostraPopulacao();
+            operadoresGeneticos();
+            novoPopulacao();
         }
-        System.out.println("Indice do indivíduo de menor avaliação: " + indiceMenorAvaliacao());
+        mostrarCargaAviao(this.populacao.get(obterMelhor()));
+    }
+
+    public void mostraPopulacao() {
+        for (int i = 0; i < this.tamPopulacao; i++) {
+            System.out.println("Cromossomo " + i + ":" + populacao.get(i));
+            System.out.println("Avaliacao:" + fitness(populacao.get(i)));
+        }
     }
 
     public void carregaArquivo(String fileName) {
-        String csvFile = fileName;
-        String line = "";
-        String[] produto = null;
-        try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+            String line;
             while ((line = br.readLine()) != null) {
-                produto = line.split(",");
+                String[] produto = line.split(",");
                 Produto novoProduto = new Produto();
                 novoProduto.setDescricao(produto[0]);
                 novoProduto.setPeso(Double.parseDouble(produto[1]));
@@ -55,7 +63,7 @@ public class AlgoritmoGenetico {
                 System.out.println(novoProduto);
                 this.tamCromossomo++;
             }
-            System.out.println("Tamanho do cromossomo: " + this.tamCromossomo);
+            System.out.println("Tamanho do cromossomo:" + this.tamCromossomo);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -64,19 +72,17 @@ public class AlgoritmoGenetico {
     private ArrayList<Integer> criarCromossomo() {
         ArrayList<Integer> novoCromossomo = new ArrayList<>();
         for (int i = 0; i < this.tamCromossomo; i++) {
-            if (Math.random() < 0.6) {
+            if (Math.random() < 0.6)
                 novoCromossomo.add(0);
-            } else {
+            else
                 novoCromossomo.add(1);
-            }
         }
         return novoCromossomo;
     }
 
     private void criarPopulacao() {
-        for (int i = 0; i < this.tamPopulacao; i++) {
+        for (int i = 0; i < this.tamPopulacao; i++)
             this.populacao.add(criarCromossomo());
-        }
     }
 
     private double fitness(ArrayList<Integer> cromossomo) {
@@ -89,20 +95,18 @@ public class AlgoritmoGenetico {
                 pesoTotal += produto.getPeso();
                 volumeTotal += produto.getLargura() * produto.getAltura() * produto.getProfundidade();
 
-                // Verificação individual das dimensões
-                if (produto.getLargura() > larguraMaxima || 
-                    produto.getAltura() > alturaMaxima || 
-                    produto.getProfundidade() > profundidadeMaxima) {
+                if (produto.getLargura() > this.larguraMaxima ||
+                    produto.getAltura() > this.alturaMaxima ||
+                    produto.getProfundidade() > this.profundidadeMaxima) {
                     excedeDimensoes = true;
                 }
             }
         }
 
-        // Verificação das restrições de peso e dimensões
-        if (pesoTotal > this.capacidade || excedeDimensoes) {
-            return 0; // Penaliza se exceder qualquer restrição
+        if (pesoTotal > this.capacidadePeso || excedeDimensoes) {
+            return 0;
         } else {
-            return volumeTotal; // Retorna o volume total como fitness
+            return volumeTotal/1000000;
         }
     }
 
@@ -110,19 +114,16 @@ public class AlgoritmoGenetico {
         ArrayList<Double> fitnessIndividuos = new ArrayList<>();
         double totalFitness = 0;
         for (int i = 0; i < this.tamPopulacao; i++) {
-            double fitnessValue = fitness(this.populacao.get(i));
-            fitnessIndividuos.add(fitnessValue);
-            totalFitness += fitnessValue;
+            fitnessIndividuos.add(i, fitness(this.populacao.get(i)));
+            totalFitness += fitnessIndividuos.get(i);
         }
-        System.out.println("Soma total fitness: " + totalFitness);
-        System.out.println("Notas: " + fitnessIndividuos);
+        System.out.println("Soma total fitness:" + totalFitness);
+
         for (int i = 0; i < this.tamPopulacao; i++) {
             double qtdPosicoes = (fitnessIndividuos.get(i) / totalFitness) * 1000;
-            for (int j = 0; j <= qtdPosicoes; j++) {
+            for (int j = 0; j <= qtdPosicoes; j++)
                 roletaVirtual.add(i);
-            }
         }
-        System.out.println("Roleta Virtual: " + roletaVirtual);
     }
 
     private int roleta() {
@@ -161,35 +162,76 @@ public class AlgoritmoGenetico {
         int v = r.nextInt(100);
         if (v < this.probMutacao) {
             int ponto = r.nextInt(this.tamCromossomo);
-            if (filho.get(ponto) == 1) {
-                filho.set(ponto, 0);
-            } else {
-                filho.set(ponto, 1);
-            }
+            filho.set(ponto, filho.get(ponto) == 1 ? 0 : 1);
 
             int ponto2 = r.nextInt(this.tamCromossomo);
-            if (filho.get(ponto2) == 1) {
-                filho.set(ponto2, 0);
-            } else {
-                filho.set(ponto2, 1);
-            }
+            filho.set(ponto2, filho.get(ponto2) == 1 ? 0 : 1);
 
             System.out.println("Ocorreu mutação!");
         }
     }
 
-    private int indiceMenorAvaliacao() {
-        double menorAvaliacao = Double.MAX_VALUE;
-        int indiceMenor = -1;
+    private void operadoresGeneticos() {
+        ArrayList<Integer> f1, f2;
+        ArrayList<ArrayList<Integer>> filhos;
+        gerarRoleta();
+        for (int i = 0; i < this.qtdeCruzamentos; i++) {
+            filhos = cruzamento();
+            f1 = filhos.get(0);
+            f2 = filhos.get(1);
+            mutacao(f1);
+            mutacao(f2);
+            populacao.add(f1);
+            populacao.add(f2);
+        }
+    }
 
-        for (int i = 0; i < this.tamPopulacao; i++) {
-            double avaliacaoAtual = fitness(this.populacao.get(i));
-            if (avaliacaoAtual < menorAvaliacao) {
-                menorAvaliacao = avaliacaoAtual;
-                indiceMenor = i;
+    private int obterPior() {
+        int indicePior = 0;
+        double pior = fitness(this.populacao.get(0));
+        for (int i = 1; i < this.tamPopulacao; i++) {
+            double nota = fitness(this.populacao.get(i));
+            if (nota < pior) {
+                pior = nota;
+                indicePior = i;
             }
         }
+        return indicePior;
+    }
 
-        return indiceMenor;
+    private void novoPopulacao() {
+        for (int i = 0; i < this.qtdeCruzamentos; i++) {
+            populacao.remove(obterPior());
+            populacao.remove(obterPior());
+        }
+    }
+
+    private int obterMelhor() {
+        int indiceMelhor = 0;
+        double melhor = fitness(this.populacao.get(0));
+        for (int i = 1; i < this.tamPopulacao; i++) {
+            double nota = fitness(this.populacao.get(i));
+            if (nota > melhor) {
+                melhor = nota;
+                indiceMelhor = i;
+            }
+        }
+        return indiceMelhor;
+    }
+
+    public void mostrarCargaAviao(ArrayList<Integer> resultado) {
+        System.out.println("Avaliacao do Melhor:" + this.fitness(resultado));
+        System.out.println("Produtos levados no aviao:");
+        for (int i = 0; i < resultado.size(); i++) {
+            int leva = resultado.get(i);
+            if (leva == 1) {
+                Produto p = produtos.get(i);
+                System.out.println(p.getDescricao() +
+                        " Peso:" + p.getPeso() +
+                        " Largura:" + p.getLargura() +
+                        " Altura:" + p.getAltura() +
+                        " Profundidade:" + p.getProfundidade());
+            }
+        }
     }
 }
